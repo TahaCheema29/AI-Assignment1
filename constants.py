@@ -2,15 +2,15 @@ from enum import Enum
 
 
 class Face(Enum):
+    DOWN = 'D'
     UPPER = 'U'
     FRONT = 'F'
     RIGHT = 'R'
     BACK = 'B'
     LEFT = 'L'
-    DOWN = 'D'
 
 class Movement(Enum):
-    ANTI_CLOCKWISE = 'A'
+    ANTICLOCKWISE = 'A'
     CLOCKWISE = 'C'
 
 class Color(Enum):

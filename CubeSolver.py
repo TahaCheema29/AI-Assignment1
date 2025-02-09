@@ -1,140 +1,150 @@
-import time
-from queue import Queue, PriorityQueue
+from collections import deque
+import copy
+import heapq
+
 from RubicCube import RubicCube
 from constants import Face, Movement
 
 class CubeSolver:
     def __init__(self, cube: RubicCube):
-        self.initial_state = self.load_inital_state()
+        self.initial_state = self.load_initial_state()
         self.goal_state = self.load_goal_state()
         self.cube = cube
-        self.moves = [(face, move) for face in Face for move in Movement]  # Possible face moves
 
-    def load_inital_state(self):
+    def load_initial_state(self):
         with open('partC.txt', 'r') as file:
             lines = file.readlines()
-        return self.convert_to_tuple(lines[0].strip().split(','))
+        return lines[0].strip()
 
     def load_goal_state(self):
         with open('partC.txt', 'r') as file:
             lines = file.readlines()
-        return self.convert_to_tuple(lines[1].strip().split(','))
+        return lines[1].strip()
 
-    def convert_to_tuple(self, flat_list):
-        """Converts a list of 54 elements into a hashable tuple representation."""
-        return tuple(flat_list)
-
-    def is_goal_state(self, state):
-        """Checks if the given cube state matches the goal state."""
-        return state == self.goal_state
-
-    def generate_next_states(self, state):
-        """Generates all possible next states efficiently."""
-        next_states = []
-        for face, move in self.moves:
-            new_cube = RubicCube()  # Create a new cube object
-            new_cube.cube = new_cube.convert_list_to_cube(list(state))  # Convert tuple back to list for modification
-            print('new_cube.cube',new_cube.cube)
-            print('face',face)
-            print('move',move)
-            new_cube.apply_move(face, move)
-            next_states.append((tuple(new_cube.cube), (face, move)))  # Convert back to tuple
-        return next_states
-
-    def bfs(self):
-        """Optimized BFS implementation."""
-        start_time = time.time()
-        queue = Queue()
-        queue.put((self.initial_state, []))  
-        visited = {self.initial_state}
-
-        num_expanded = 0
+    def bfs_solve(self):
+        queue = deque()
+        visited = set()
+        queue.append((self.initial_state, [], 0))  # (state, path, depth)
+        visited.add(self.initial_state)
+        
+        states_expanded = 0
         max_queue_size = 1
 
-        while not queue.empty():
-            max_queue_size = max(max_queue_size, queue.qsize())
-            current_state, moves = queue.get()
-            num_expanded += 1
+        while queue:
+            current_state, path, depth = queue.popleft()
+            states_expanded += 1
+            max_queue_size = max(max_queue_size, len(queue))
 
-            if self.is_goal_state(current_state):
-                return moves, num_expanded, max_queue_size, time.time() - start_time
+            if current_state == self.goal_state:
+                print(f"Solution found in {len(path)} moves!")
+                return path, states_expanded, max_queue_size
 
-            for new_state, move in self.generate_next_states(current_state):
-                if new_state not in visited:
-                    visited.add(new_state)
-                    queue.put((new_state, moves + [move]))
+            for move in self.get_possible_moves():
+                new_state = self.apply_move(current_state, move)
 
-        return None, num_expanded, max_queue_size, time.time() - start_time  # No solution found
+                if new_state in visited:    
+                    continue 
+                
+                print('adding in visited ',len(visited))
+                print('new state is ',new_state)
+                visited.add(new_state)
+                queue.append((new_state, path + [move], depth + 1))
 
-    def ids(self, max_depth=20):
-        """Optimized Iterative Deepening Search."""
-        start_time = time.time()
+        return None, states_expanded, max_queue_size
 
-        def dfs(state, moves, depth):
-            nonlocal num_expanded, max_stack_size
-            if self.is_goal_state(state):
-                return moves
-            if depth == 0:
-                return None
-            num_expanded += 1
-            max_stack_size = max(max_stack_size, len(moves))
-            for new_state, move in self.generate_next_states(state):
-                result = dfs(new_state, moves + [move], depth - 1)
-                if result:
-                    return result
-            return None
-
-        num_expanded = 0
+    def dfs_solve(self):
+        stack = [(self.initial_state, [], 0)]  # (state, path, depth)
+        visited = set()
+        states_expanded = 0
         max_stack_size = 1
-        for depth in range(max_depth):
-            result = dfs(self.initial_state, [], depth)
-            if result:
-                return result, num_expanded, max_stack_size, time.time() - start_time
 
-        return None, num_expanded, max_stack_size, time.time() - start_time  # No solution found
+        while stack:
+            current_state, path, depth = stack.pop()
+            states_expanded += 1
+            max_stack_size = max(max_stack_size, len(stack))
+            
+            if current_state == self.goal_state:
+                print(f"Solution found in {len(path)} moves!")
+                return path, states_expanded, max_stack_size
+
+            if depth < 20:  # Depth limit to prevent infinite recursion
+                for move in self.get_possible_moves():
+                    new_state = self.apply_move(current_state, move)
+                    if new_state not in visited:
+                        print('adding in visited ',len(visited))
+                        print('new state is ',new_state)
+                        visited.add(new_state)
+                        stack.append((new_state, path + [move], depth + 1))
+        
+        return None, states_expanded, max_stack_size
+
+    def a_star_solve(self):
+        priority_queue = []
+        heapq.heappush(priority_queue, (0, self.initial_state, []))  # (cost, state, path)
+        visited = set()
+        states_expanded = 0
+        max_queue_size = 1
+        
+        while priority_queue:
+            cost, current_state, path = heapq.heappop(priority_queue)
+            states_expanded += 1
+            max_queue_size = max(max_queue_size, len(priority_queue))
+            
+            if current_state == self.goal_state:
+                print(f"Solution found in {len(path)} moves!")
+                return path, states_expanded, max_queue_size
+
+            for move in self.get_possible_moves():
+                new_state = self.apply_move(current_state, move)
+                if new_state not in visited:
+                    print('adding in visited ',len(visited))
+                    print('new state is ',new_state)
+                    visited.add(new_state)
+                    heuristic = self.heuristic(new_state)
+                    heapq.heappush(priority_queue, (cost + heuristic, new_state, path + [move]))
+        
+        return None, states_expanded, max_queue_size
 
     def heuristic(self, state):
-        """Improved A* heuristic (misplaced tiles + Manhattan distance)."""
-        misplaced = sum(1 for i in range(54) if state[i] != self.goal_state[i])
-        return misplaced  # Can be extended with Manhattan distance
+        cube = RubicCube()
+        cube.make_cube(state.split(','))
 
-    def a_star(self):
-        """Optimized A* Search with improved heuristic."""
-        start_time = time.time()
-        priority_queue = PriorityQueue()
-        priority_queue.put((self.heuristic(self.initial_state), 0, self.initial_state, []))  
-        visited = {self.initial_state}
+        total_distance = 0
+        for piece, correct_pos in zip(state.split(','), self.goal_state.split(',')):
+            if piece != correct_pos:
+                total_distance += self.manhattan_distance(piece, correct_pos)
 
-        num_expanded = 0
-        max_queue_size = 1
+        return total_distance
 
-        while not priority_queue.empty():
-            max_queue_size = max(max_queue_size, priority_queue.qsize())
-            _, cost, current_state, moves = priority_queue.get()
-            num_expanded += 1
+    def manhattan_distance(self, piece, correct_pos):
+        """Estimate the number of face rotations needed to move piece to correct position."""
+        # Define how pieces move in Rubik’s Cube and estimate cost.
+        # Example: If piece is on the opposite face, at least 2 rotations are needed.
+        
+        face_distance = {
+            "U": 0, "D": 0,  # Up and Down require vertical moves
+            "L": 1, "R": 1,  # Left and Right require horizontal moves
+            "F": 1, "B": 1,  # Front and Back require horizontal moves
+        }
+        
+        piece_face = piece[0]  # Example: "W1" -> "W" (White Face)
+        correct_face = correct_pos[0]
 
-            if self.is_goal_state(current_state):
-                return moves, num_expanded, max_queue_size, time.time() - start_time
+        return face_distance.get(piece_face, 2) if piece_face != correct_face else 0
 
-            for new_state, move in self.generate_next_states(current_state):
-                if new_state not in visited:
-                    visited.add(new_state)
-                    priority_queue.put((self.heuristic(new_state) + cost + 1, cost + 1, new_state, moves + [move]))
+    def apply_move(self, state, move):
+        cube = RubicCube()
+        cube.make_cube(state.split(','))
+        cube.apply_move(move[0], move[1])
+        return self.convert_cube_to_string(cube)
 
-        return None, num_expanded, max_queue_size, time.time() - start_time  # No solution found
+    def get_possible_moves(self):
+        return [(face, move) for face in Face for move in [Movement.CLOCKWISE, Movement.ANTICLOCKWISE]]
 
-    def compare_algorithms(self):
-        """Compares the performance of BFS, IDS, and A*."""
-        print("\nRunning BFS...")
-        bfs_result = self.bfs()
-        print(f"BFS - Moves: {len(bfs_result[0]) if bfs_result[0] else 'No Solution'}, States Expanded: {bfs_result[1]}, Max Queue Size: {bfs_result[2]}, Time: {bfs_result[3]:.4f}s")
+    def convert_cube_to_string(self, cube: RubicCube):
+        cube_state = []
+        for face in [Face.UPPER, Face.FRONT, Face.RIGHT, Face.BACK, Face.LEFT, Face.DOWN]:
+            for row in cube.cube[face]:
+                cube_state.extend(row)
+        return ",".join(cube_state)
 
-        # print("\nRunning IDS...")
-        # ids_result = self.ids()
-        # print(f"IDS - Moves: {len(ids_result[0]) if ids_result[0] else 'No Solution'}, States Expanded: {ids_result[1]}, Max Stack Size: {ids_result[2]}, Time: {ids_result[3]:.4f}s")
-
-        # print("\nRunning A*...")
-        # a_star_result = self.a_star()
-        # print(f"A* - Moves: {len(a_star_result[0]) if a_star_result[0] else 'No Solution'}, States Expanded: {a_star_result[1]}, Max Queue Size: {a_star_result[2]}, Time: {a_star_result[3]:.4f}s")
-
-       

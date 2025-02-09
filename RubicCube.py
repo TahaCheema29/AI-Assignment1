@@ -15,10 +15,13 @@ class RubicCube:
 
         if len(initial_cube) != 54:  
             raise ValueError("Invalid cube state in file. Expected 54 elements.")
+        
+        self.make_cube(initial_cube)
 
-        self.cube = self.convert_list_to_cube(initial_cube)
+    def make_cube(self,initial_cube:list[str]):
+         self.cube = self.convert_list_to_cube(initial_cube)
 
-    @staticmethod
+    @staticmethod   
     def convert_list_to_cube(cube_list):
         return {
             Face.UPPER: [cube_list[0:3], cube_list[3:6], cube_list[6:9]],
@@ -104,6 +107,10 @@ class RubicCube:
     def rotate_face(self, face: Face, move: Movement):
         """Rotates a face's 3×3 grid 90 degrees (clockwise or anti-clockwise)."""
         temp = copy.deepcopy(self.cube[face])
+        # print('self cube is ',self.cube)
+        if len(temp) != 3 or any(len(row) != 3 for row in temp):
+            raise ValueError(f"Invalid face structure: {face} -> {temp}")
+
         if move == Movement.CLOCKWISE:
             for i in range(3):
                 for j in range(3):
@@ -111,10 +118,6 @@ class RubicCube:
         else:  # Anti-clockwise
             for i in range(3):
                 for j in range(3):
-                    print('i',i)
-                    print('j',j)
-                    print('face',face)
-                    print('self.cube[face]',self.cube[face])
                     self.cube[face][2 - j][i] = temp[i][j]
 
     def execute_moves(self):
@@ -144,22 +147,3 @@ class RubicCube:
         print(f"Final cube state written to {"partB.txt"}.")
     
     
-# from CubeSolver import CubeSolver
-# from RubicCube import RubicCube
-
-
-def main():
-    cube = RubicCube()
-    cube.set_cube()
-    print("Initial Cube State:")
-    cube.print_cube()
-    cube.execute_moves()
-    print("\nFinal Cube State:")
-    cube.print_cube()
-    cube.write_result_to_file()
-
-    # solver = CubeSolver(cube)
-    # solver.compare_algorithms()
-
-if __name__ == "__main__":
-    main()
