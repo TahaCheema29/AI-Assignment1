@@ -33,13 +33,32 @@ class RubicCube:
         }
 
     def print_cube(self):
-        print("\n    " + "\n    ".join(self.print_face(Face.UPPER)))
+        color_map = {
+            'W': '\033[97m',  
+            'Y': '\033[93m',  
+            'O': '\033[38;5;214m',
+            'R': '\033[91m',   
+            'G': '\033[92m',   
+            'B': '\033[94m',  
+            'RESET': '\033[0m' 
+        }
+
+        def colorize(row):
+            return ' '.join(f"{color_map[cell[0]]}{cell}{color_map['RESET']}" for cell in row)
+
+
+        print("\n    " + "\n    ".join(colorize(row) for row in self.cube[Face.UPPER]))
+
         for i in range(3):
-            print(f"{' '.join(self.cube[Face.LEFT][i])}   "
-                  f"{' '.join(self.cube[Face.FRONT][i])}   "
-                  f"{' '.join(self.cube[Face.RIGHT][i])}   "
-                  f"{' '.join(self.cube[Face.BACK][i])}")
-        print("    " + "\n    ".join(self.print_face(Face.DOWN)))
+            print(
+                f"{colorize(self.cube[Face.LEFT][i])}   "
+                f"{colorize(self.cube[Face.FRONT][i])}   "
+                f"{colorize(self.cube[Face.RIGHT][i])}   "
+                f"{colorize(self.cube[Face.BACK][i])}"
+            )
+
+        print("    " + "\n    ".join(colorize(row) for row in self.cube[Face.DOWN]))
+
 
     def print_face(self, face: Face):
         return [' '.join(row) for row in self.cube[face]]
@@ -57,45 +76,64 @@ class RubicCube:
         return moves 
 
     def apply_move(self, face: Face, move: Movement):
-        """Apply a move (clockwise or anti-clockwise) to a specific face."""
+        # if face in {Face.UPPER, Face.DOWN}:
+        #     face_to_change = [Face.BACK, Face.RIGHT, Face.FRONT, Face.LEFT]
+        #     face_to_place = [Face.LEFT, Face.BACK, Face.RIGHT, Face.FRONT] if move == Movement.CLOCKWISE else \
+        #                     [Face.FRONT, Face.RIGHT, Face.BACK, Face.LEFT]
+        #     row = 0 if face == Face.UPPER else 2
+        #     self.move_horizontal(row, face_to_change, face_to_place)
+
+        # elif face in {Face.FRONT, Face.BACK}:
+        #     face_to_change = [Face.UPPER, Face.RIGHT, Face.DOWN, Face.LEFT]
+        #     face_to_place = [Face.LEFT, Face.UPPER, Face.RIGHT, Face.DOWN] if move == Movement.CLOCKWISE else \
+        #                     [Face.DOWN, Face.RIGHT, Face.UPPER, Face.LEFT]
+        #     col = 0 if face == Face.FRONT else 2
+        #     self.move_vertical(col, face_to_change, face_to_place)
+
+        # elif face == Face.RIGHT:
+        #     face_to_change = [Face.UPPER, Face.BACK, Face.DOWN, Face.FRONT]
+        #     face_to_place = [Face.FRONT, Face.UPPER, Face.BACK, Face.DOWN] if move == Movement.CLOCKWISE else \
+        #                     [Face.DOWN, Face.BACK, Face.UPPER, Face.FRONT]
+        #     col = 2
+        #     self.move_vertical(col, face_to_change, face_to_place)
+
+        # elif face == Face.LEFT:
+        #     face_to_change = [Face.UPPER, Face.FRONT, Face.DOWN, Face.BACK]
+        #     face_to_place = [Face.BACK, Face.UPPER, Face.FRONT, Face.DOWN] if move == Movement.CLOCKWISE else \
+        #                     [Face.DOWN, Face.FRONT, Face.UPPER, Face.BACK]
+        #     col = 0
+        #     self.move_vertical(col, face_to_change, face_to_place)
         if face in {Face.UPPER, Face.DOWN}:
-            face_to_change = [Face.BACK, Face.RIGHT, Face.FRONT, Face.LEFT]
+            face_to_change = [Face.BACK, Face.RIGHT, Face.FRONT, Face.LEFT] if move==Movement.CLOCKWISE else \
+            [Face.BACK, Face.LEFT, Face.FRONT, Face.RIGHT]
             face_to_place = [Face.LEFT, Face.BACK, Face.RIGHT, Face.FRONT] if move == Movement.CLOCKWISE else \
-                            [Face.FRONT, Face.RIGHT, Face.BACK, Face.LEFT]
+            [Face.RIGHT, Face.BACK, Face.LEFT, Face.FRONT]
             row = 0 if face == Face.UPPER else 2
             self.move_horizontal(row, face_to_change, face_to_place)
 
         elif face in {Face.FRONT, Face.BACK}:
-            face_to_change = [Face.UPPER, Face.RIGHT, Face.DOWN, Face.LEFT]
+            face_to_change = [Face.UPPER, Face.RIGHT, Face.DOWN, Face.LEFT] if move == Movement.CLOCKWISE else \
+            [Face.UPPER, Face.LEFT, Face.DOWN, Face.RIGHT]
             face_to_place = [Face.LEFT, Face.UPPER, Face.RIGHT, Face.DOWN] if move == Movement.CLOCKWISE else \
-                            [Face.DOWN, Face.RIGHT, Face.UPPER, Face.LEFT]
+            [Face.RIGHT, Face.UPPER, Face.LEFT, Face.DOWN]
             col = 0 if face == Face.FRONT else 2
             self.move_vertical(col, face_to_change, face_to_place)
 
-        elif face == Face.RIGHT:
-            face_to_change = [Face.UPPER, Face.BACK, Face.DOWN, Face.FRONT]
+        elif face in {Face.RIGHT, Face.LEFT}:
+            face_to_change = [Face.UPPER, Face.BACK, Face.DOWN, Face.FRONT]if move == Movement.CLOCKWISE else \
+            [Face.UPPER, Face.FRONT, Face.DOWN, Face.BACK]
             face_to_place = [Face.FRONT, Face.UPPER, Face.BACK, Face.DOWN] if move == Movement.CLOCKWISE else \
-                            [Face.DOWN, Face.BACK, Face.UPPER, Face.FRONT]
-            col = 2
+            [Face.BACK, Face.UPPER, Face.FRONT, Face.DOWN]
+            col = 0 if face == Face.LEFT else 2
             self.move_vertical(col, face_to_change, face_to_place)
-
-        elif face == Face.LEFT:
-            face_to_change = [Face.UPPER, Face.FRONT, Face.DOWN, Face.BACK]
-            face_to_place = [Face.BACK, Face.UPPER, Face.FRONT, Face.DOWN] if move == Movement.CLOCKWISE else \
-                            [Face.DOWN, Face.FRONT, Face.UPPER, Face.BACK]
-            col = 0
-            self.move_vertical(col, face_to_change, face_to_place)
-
-        self.rotate_face(face, move)
+            self.rotate_face(face, move)
 
     def move_horizontal(self, row: int, face_to_change: list[Face], face_to_place: list[Face]):
-        """Shifts a row horizontally across four adjacent faces."""
         temp = self.cube[face_to_place[0]][row]
         for i in range(4):
             self.cube[face_to_change[i]][row], temp = temp, self.cube[face_to_change[i]][row]
 
     def move_vertical(self, col: int, face_to_change: list[Face], face_to_place: list[Face]):
-        """Shifts a column vertically across four adjacent faces."""
         temp = [row[col] for row in self.cube[face_to_place[0]]]
         for i in range(4):
             current_face = face_to_change[i]
@@ -105,7 +143,6 @@ class RubicCube:
             temp = next_temp
 
     def rotate_face(self, face: Face, move: Movement):
-        """Rotates a face's 3×3 grid 90 degrees (clockwise or anti-clockwise)."""
         temp = copy.deepcopy(self.cube[face])
         # print('self cube is ',self.cube)
         if len(temp) != 3 or any(len(row) != 3 for row in temp):
@@ -121,7 +158,6 @@ class RubicCube:
                     self.cube[face][2 - j][i] = temp[i][j]
 
     def execute_moves(self):
-        """Reads moves from the file and applies them sequentially to the cube."""
         moves = self.read_moves()
 
         for move in moves:
@@ -132,7 +168,6 @@ class RubicCube:
         print("All moves executed successfully!")
 
     def write_result_to_file(self):
-        """Writes the final cube state to a file in the same format as partB.txt."""
         cube_state = []
         
         for face in [Face.UPPER, Face.FRONT, Face.RIGHT, Face.BACK, Face.LEFT, Face.DOWN]:
